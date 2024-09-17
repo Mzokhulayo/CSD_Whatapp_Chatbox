@@ -9,8 +9,10 @@ public class Customer {
 
     private UUID id;
     private String name;
+    private String surname;
     private String phoneNumber;
     private String email;
+    private String address;
     private LocalDateTime createdAt;
 
 
@@ -24,8 +26,15 @@ public class Customer {
         return id;
     }
 
+    public String getAddress() {
+        return address;
+    }
+
     public String getName() {
         return name;
+    }
+    public String getSurname() {
+        return surname;
     }
 
     public String getPhoneNumber() {
@@ -44,12 +53,20 @@ public class Customer {
         this.name = name;
     }
 
+    public void setSurname(String surname) {
+        this.surname = surname;
+    }
+
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
     }
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public void setAddress(String address) {
+        this.address=address;
     }
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
