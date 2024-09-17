@@ -45,7 +45,7 @@ public class ChatbotController {
             if (!otpVerifiedMap.containsKey(phone)) {
                 // Start OTP verification
                 otpVerifiedMap.put(phone, false);
-                response.put("message", "To register, please provide the OTP sent to your number.");
+                response.put("message", "Your Phone Numbers ws not found, To register, please provide the OTP sent to your number.");
             } else if (!otpVerifiedMap.get(phone)) {
                 // Verify OTP
                 if (isValidOTP(message)) { // Assuming you have a method to validate the OTP
