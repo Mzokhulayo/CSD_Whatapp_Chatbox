@@ -2,11 +2,13 @@ package com.example.chatbot.controller;
 
 import com.example.chatbot.DataTransfareObject.ChatbotRequest;
 import com.example.chatbot.model.Customer;
+import com.example.chatbot.repository.CustomerRepository;
 import com.example.chatbot.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -21,7 +23,8 @@ public class ChatbotController {
 
     private final Map<String, Customer> customerDataMap = new HashMap<>();
     private final Map<String, Boolean> otpVerifiedMap = new HashMap<>();
-
+    @Autowired
+    private CustomerRepository customerRepository;
 
     @PostMapping("/message")
     public Map<String, String> handleMessage(@Valid @RequestBody ChatbotRequest request) {
@@ -36,19 +39,15 @@ public class ChatbotController {
         if (customerOptional.isPresent()) {
             // Customer found, handle any message accordingly
             Customer customer = customerOptional.get();
-
-            // Respond to any message from a registered customer
             response.put("message", "Welcome back, " + customer.getName() + "! You said: " + message + ". How can I assist you today?");
         } else {
             // Customer not found, start registration process
             if (!otpVerifiedMap.containsKey(phone)) {
-                // Start OTP verification
                 otpVerifiedMap.put(phone, false);
                 customerService.sendOtp(phone, "123456"); // Dummy OTP sending
                 response.put("message", "Your phone number was not found. To register, please provide the OTP sent to your number.");
             } else if (!otpVerifiedMap.get(phone)) {
-                // Verify OTP
-                if (isValidOTP(message)) { // Assuming you have a method to validate the OTP
+                if (isValidOTP(message)) {
                     otpVerifiedMap.put(phone, true);
                     customerDataMap.put(phone, new Customer());
                     response.put("message", "OTP verified! What is your name?");
@@ -56,7 +55,6 @@ public class ChatbotController {
                     response.put("message", "Invalid OTP. Please try again.");
                 }
             } else {
-                // Continue the registration process after OTP verification
                 Customer newCustomer = customerDataMap.get(phone);
 
                 if (newCustomer.getName() == null) {
@@ -74,6 +72,7 @@ public class ChatbotController {
                 } else if (newCustomer.getAddress() == null) {
                     newCustomer.setAddress(message);
                     customerService.registerCustomer(newCustomer);
+//                    customerRepository.save(newCustomer);
                     customerDataMap.remove(phone);
                     otpVerifiedMap.remove(phone);
                     response.put("message", "Registration successful! Welcome to JHB CSD App.");
@@ -84,9 +83,8 @@ public class ChatbotController {
         return response;
     }
 
-
-    // Dummy method to validate OTP in a real app it can be replaced with a real thing like and sms API
+    // Dummy method for validation
     private boolean isValidOTP(String otp) {
-        return "123456".equals(otp); // For demonstration purposes, assume "123456" is the valid OTP
+        return "123456".equals(otp);
     }
 }

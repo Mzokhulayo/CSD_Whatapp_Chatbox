@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,12 +19,17 @@ public class CustomerRepository {
     private JdbcTemplate jdbcTemplate;
 
     public Customer save(Customer customer) {
-        String sql = "INSERT INTO customers (id, name, phone_number, email, created_at) VALUES (?, ?, ?, ?, ?)";
+        // Generate a new UUID for the customer
         UUID customerId = UUID.randomUUID();
-        jdbcTemplate.update(sql, customerId, customer.getName(), customer.getPhoneNumber(), customer.getEmail(), customer.getCreatedAt());
         customer.setId(customerId);
-        return customer;
+        customer.setCreatedAt(LocalDateTime.now()); // Set the current time
+
+        String sql = "INSERT INTO customers (id, name, surname, phone_number, email, address, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        jdbcTemplate.update(sql, customerId, customer.getName(), customer.getSurname(), customer.getPhoneNumber(), customer.getEmail(), customer.getAddress(), customer.getCreatedAt());
+
+        return customer;  // Return the saved customer with ID set
     }
+
 
     public Optional<Customer> findByPhoneNumber(String phoneNumber) {
         String sql = "SELECT * FROM customers WHERE phone_number = ?";
@@ -37,8 +43,10 @@ public class CustomerRepository {
             Customer customer = new Customer();
             customer.setId(UUID.fromString(rs.getString("id")));
             customer.setName(rs.getString("name"));
+            customer.setSurname(rs.getString("surname"));
             customer.setPhoneNumber(rs.getString("phone_number"));
             customer.setEmail(rs.getString("email"));
+            customer.setAddress(rs.getString("address"));
             customer.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
             return customer;
         }
