@@ -49,7 +49,10 @@ public class ChatbotController {
             } else if (!otpVerifiedMap.get(phone)) {
                 if (isValidOTP(message)) {
                     otpVerifiedMap.put(phone, true);
-                    customerDataMap.put(phone, new Customer());
+                    // Phone number already provided in request, now will skip asking
+                    Customer newCustomer = new Customer();
+                    newCustomer.setPhoneNumber(phone); // AutoSet Phone Number
+                    customerDataMap.put(phone, newCustomer);
                     response.put("message", "OTP verified! What is your name?");
                 } else {
                     response.put("message", "Invalid OTP. Please try again.");
@@ -62,17 +65,13 @@ public class ChatbotController {
                     response.put("message", "Thank you! Now, please provide your surname.");
                 } else if (newCustomer.getSurname() == null) {
                     newCustomer.setSurname(message);
-                    response.put("message", "Got it! Please provide your contact number.");
-                } else if (newCustomer.getPhoneNumber() == null) {
-                    newCustomer.setPhoneNumber(message);
-                    response.put("message", "Thanks! What is your email address?");
+                    response.put("message", "Got it! Please provide your email address.");
                 } else if (newCustomer.getEmail() == null) {
                     newCustomer.setEmail(message);
-                    response.put("message", "Got it! Finally, please provide your address.");
+                    response.put("message", "Thanks! Please enter your Residential address?");
                 } else if (newCustomer.getAddress() == null) {
                     newCustomer.setAddress(message);
                     customerService.registerCustomer(newCustomer);
-//                    customerRepository.save(newCustomer);
                     customerDataMap.remove(phone);
                     otpVerifiedMap.remove(phone);
                     response.put("message", "Registration successful! Welcome to JHB CSD App.");
