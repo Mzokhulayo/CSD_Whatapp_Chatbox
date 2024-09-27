@@ -49,32 +49,42 @@ public class ChatbotController {
             } else if (!otpVerifiedMap.get(phone)) {
                 if (isValidOTP(message)) {
                     otpVerifiedMap.put(phone, true);
-                    // Phone number already provided in request, now will skip asking
-                    Customer newCustomer = new Customer();
-                    newCustomer.setPhoneNumber(phone); // AutoSet Phone Number
-                    customerDataMap.put(phone, newCustomer);
-                    response.put("message", "OTP verified! What is your name?");
+
+                    response.put("message", "OTP verified! Please provide your details in the format: Name, Surname, Email, Physical Address");
                 } else {
                     response.put("message", "Invalid OTP. Please try again.");
                 }
             } else {
+                // Process Information provided by user for registration
                 Customer newCustomer = customerDataMap.get(phone);
+                String[] userInformation =message.split(", ");
 
-                if (newCustomer.getName() == null) {
-                    newCustomer.setName(message);
-                    response.put("message", "Thank you! Now, please provide your surname.");
-                } else if (newCustomer.getSurname() == null) {
-                    newCustomer.setSurname(message);
-                    response.put("message", "Got it! Please provide your email address.");
-                } else if (newCustomer.getEmail() == null) {
-                    newCustomer.setEmail(message);
-                    response.put("message", "Thanks! Please enter your Residential address?");
-                } else if (newCustomer.getAddress() == null) {
-                    newCustomer.setAddress(message);
+                if(userInformation.length == 4) {
+                    newCustomer.setName(userInformation[0]);
+                    newCustomer.setSurname(userInformation[1]);
+                    newCustomer.setEmail(userInformation[2]);
+                    newCustomer.setAddress(userInformation[3]);
+                    newCustomer.setPhoneNumber(phone);
+
+                    // Save Customer to database.
                     customerService.registerCustomer(newCustomer);
+//
+//                    may also add validation of correctness for user details like cellphone number and email
+//                    also might be a good idea to check this before registering user.
+//                    Error Handling for Missing Fields: You can also handle cases where users might provide fewer details
+//                    than expected by checking the length of the userData array before saving.
+
+//                    if (!userData[2].matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+//                        response.put("message", "Invalid email format. Please provide your details again in the format: Name, Surname, Email, Address.");
+//                        return response;
+//                    }
+
+                    // clear the Maps
                     customerDataMap.remove(phone);
                     otpVerifiedMap.remove(phone);
-                    response.put("message", "Registration successful! Welcome to JHB CSD App.");
+                    response.put("message", "Registration successful! Welcome to The CSD App.");
+                } else {
+                    response.put("message", "Please provide the details in the correct format: \nName, \nSurname, \nEmail, \nPhysical Address");
                 }
             }
         }
