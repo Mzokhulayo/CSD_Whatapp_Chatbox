@@ -42,58 +42,47 @@ public class ChatbotController {
             response.put("message", "Welcome back, " + customer.getName() + "! You said: " + message + ". How can I assist you today?");
         } else {
             // Customer not found, start registration process
-            if (!otpVerifiedMap.containsKey(phone)) {
-                otpVerifiedMap.put(phone, false);
-                customerService.sendOtp(phone, "123456"); // Dummy OTP sending
+            if (!customerDataMap.containsKey(phone)) {
+                customerService.sendOtp(phone);
                 response.put("message", "Your phone number was not found. To register, please provide the OTP sent to your number.");
-            } else if (!otpVerifiedMap.get(phone)) {
-                if (isValidOTP(message)) {
-                    otpVerifiedMap.put(phone, true);
-
-                    response.put("message", "OTP verified! Please provide your details in the format: Name, Surname, Email, Physical Address");
-                } else {
-                    response.put("message", "Invalid OTP. Please try again.");
-                }
+                customerDataMap.put(phone, new Customer());
             } else {
-                // Process Information provided by user for registration
-                Customer newCustomer = customerDataMap.get(phone);
-                String[] userInformation =message.split(", ");
-
-                if(userInformation.length == 4) {
-                    newCustomer.setName(userInformation[0]);
-                    newCustomer.setSurname(userInformation[1]);
-                    newCustomer.setEmail(userInformation[2]);
-                    newCustomer.setAddress(userInformation[3]);
-                    newCustomer.setPhoneNumber(phone);
-
-                    // Save Customer to database.
-                    customerService.registerCustomer(newCustomer);
-//
-//                    may also add validation of correctness for user details like cellphone number and email
-//                    also might be a good idea to check this before registering user.
-//                    Error Handling for Missing Fields: You can also handle cases where users might provide fewer details
-//                    than expected by checking the length of the userData array before saving.
-
-//                    if (!userData[2].matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-//                        response.put("message", "Invalid email format. Please provide your details again in the format: Name, Surname, Email, Address.");
-//                        return response;
-//                    }
-
-                    // clear the Maps
-                    customerDataMap.remove(phone);
-                    otpVerifiedMap.remove(phone);
-                    response.put("message", "Registration successful! Welcome to The CSD App.");
+                // Process OTP verification
+                if (!otpVerifiedMap.getOrDefault(phone, false)) {
+                    if (customerService.validateOtp(phone, message)) {
+                        otpVerifiedMap.put(phone, true);
+                        response.put("message", "OTP verified! Please provide your details in the format: Name, Surname, Email, Physical Address.");
+                    } else {
+                        response.put("message", "Invalid OTP or OTP expired. Please try again.");
+                    }
                 } else {
-                    response.put("message", "Please provide the details in the correct format: \nName, \nSurname, \nEmail, \nPhysical Address");
+                    // Process user information for registration
+                    Customer newCustomer = customerDataMap.get(phone);
+                    String[] userInformation = message.split(", ");
+
+                    if (userInformation.length == 4) {
+                        newCustomer.setName(userInformation[0]);
+                        newCustomer.setSurname(userInformation[1]);
+                        newCustomer.setEmail(userInformation[2]);
+                        newCustomer.setAddress(userInformation[3]);
+                        newCustomer.setPhoneNumber(phone);
+
+                        // Save Customer to database.
+                        customerService.registerCustomer(newCustomer);
+
+                        // Clear the Maps
+                        customerDataMap.remove(phone);
+                        otpVerifiedMap.remove(phone);
+                        response.put("message", "Registration successful! Welcome to The CSD App.");
+                    } else {
+                        response.put("message", "Please provide the details in the correct format: Name, Surname, Email, Physical Address.");
+                    }
                 }
             }
         }
 
         return response;
     }
-
-    // Dummy method for validation
-    private boolean isValidOTP(String otp) {
-        return "123456".equals(otp);
-    }
 }
+
+
