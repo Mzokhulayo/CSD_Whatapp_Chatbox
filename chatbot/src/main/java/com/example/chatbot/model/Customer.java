@@ -1,12 +1,9 @@
 package com.example.chatbot.model;
 
-
 import java.time.LocalDateTime;
 import java.util.UUID;
-
 import lombok.Getter;
 import lombok.Setter;
-
 
 
 @Setter
@@ -20,7 +17,6 @@ public class Customer {
     private String email;
     private String address;
     private LocalDateTime createdAt;
-
 
     // Getters
 
