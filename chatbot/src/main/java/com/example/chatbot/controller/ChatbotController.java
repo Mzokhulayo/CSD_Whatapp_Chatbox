@@ -1,30 +1,47 @@
+// ChatbotController.java
 package com.example.chatbot.controller;
 
 import com.example.chatbot.DataTransfareObject.ChatbotRequest;
+import com.example.chatbot.Handler.*;
 import com.example.chatbot.model.Customer;
+import com.example.chatbot.model.RegistrationState;
 import com.example.chatbot.service.CustomerService;
+import com.example.chatbot.service.OtpService;
+import com.example.chatbot.service.RegistrationStateService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import jakarta.annotation.PostConstruct;
 import jakarta.validation.Valid;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api")
 @Validated
 public class ChatbotController {
 
-    public boolean isValidEmail(String email) {
-        String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
-        return email.matches(emailRegex);
-    }
-
     @Autowired
     private CustomerService customerService;
-    private StringHttpMessageConverter stringHttpMessageConverter;
+
+    @Autowired
+    private RegistrationStateService registrationStateService;
+
+    @Autowired
+    private OtpService otpService;
+
+    private final Map<String, RegistrationStepHandler> stepHandlers = new HashMap<>();
+
+    @PostConstruct
+    public void init() {
+        stepHandlers.put("name", new NameStepHandler(registrationStateService, customerService));
+        stepHandlers.put("surname", new SurnameStepHandler(registrationStateService, customerService));
+        stepHandlers.put("email", new EmailStepHandler(registrationStateService, customerService));
+        stepHandlers.put("address", new AddressStepHandler(customerService, registrationStateService));
+    }
 
     @PostMapping("/message")
     public Map<String, String> handleMessage(@Valid @RequestBody ChatbotRequest request) {
@@ -32,86 +49,54 @@ public class ChatbotController {
         String message = request.getMessage();
         Map<String, String> response = new HashMap<>();
 
-        // Step 1: Check if the user is already registered
-        Optional<Customer> customerOptional = customerService.findCustomerByPhoneNumber(phone);
+        Optional<Customer> customerOptional = customerService.findByPhoneNumber(phone);
 
-        if (customerOptional.isPresent()) {
-            // If the user is already registered, handle their request as a returning customer
-            Customer customer = customerOptional.get();
-            response.put("message", "Welcome back, " + customer.getName() + "! You said: " + message + ". How can I assist you today?");
-        } else {
-            // Step 2: Check the user's registration state from the database
-            Map<String, Object> registrationState = customerService.getRegistrationState(phone);
+        if (customerOptional.isEmpty()) {
+            // Start registration and generate OTP
+            UUID customerId = customerService.startRegistration(phone);
+            String otp = otpService.generateOtp();
+            otpService.saveOtp(customerId, otp, phone);
 
-            if (registrationState != null) {
-                boolean otpVerified = (Boolean) registrationState.get("otp_verified");
-
-                String step     = (String) registrationState.get("step");
-                String name     = (String) registrationState.get("name");
-                String surname  = (String) registrationState.get("surname");
-                String email    = (String) registrationState.get("email");
-                String address  = (String) registrationState.get("address");
-
-
-                // Step 3: OTP not verified yet, ask for OTP input or resend OTP
-                if (!otpVerified) {
-                    if (customerService.validateOtp(phone, message)) {
-                        // OTP verified, update the registration state
-                        customerService.updateRegistrationState(phone, true, null, null, null, null, null);
-                        response.put("message", "OTP verified! Please provide your Name.");
-                    } else {
-                        response.put("message", "Invalid OTP or OTP expired. Please enter the correct OTP.");
-                    }
-                }
-                // collecting registration data step-by-step
-                else {
-                    switch (step) {
-                        case "name":
-                            customerService.updateRegistrationState(phone, true, "surname", message, null, null, null);
-                            response.put("message", "Thanks, " + message + ". Now, please provide your Surname.");
-                            break;
-                        case "surname":
-                            customerService.updateRegistrationState(phone, true, "email", name, message, null, null);
-                            response.put("message", "Got it, " + message + ". Next, please provide your Email.");
-                            break;
-                        case "email":
-                            if (isValidEmail(message)){
-                                customerService.updateRegistrationState(phone, true, "address", name, surname, message, null);
-                                response.put("message", "Thanks! Now, please provide your Physical Address.");
-                            }  else {
-                                response.put("message", "Invalid email format. Please provide a valid email address.");
-                            }
-                            break;
-                        case "address":
-                            Customer newCustomer = new Customer();
-                            newCustomer.setName(name);
-                            newCustomer.setSurname(surname);
-                            newCustomer.setEmail(email);
-                            newCustomer.setAddress(message);
-                            newCustomer.setPhoneNumber(phone);
-
-                            customerService.saveRegistrationData(phone, newCustomer);
-                            customerService.registerCustomer(newCustomer);
-
-                            response.put("message", "Registration successful! Welcome to The CSD App.");
-                            customerService.removeRegistrationState(phone);  // Clear the session once registration is done
-                            break;
-                        default:
-                            response.put("message", "We encountered an error. Please try again.");
-                    }
-                }
-            } else {
-                // Step 5: start new registration and send otp
-                customerService.sendOtp(phone);
-                response.put("message", "Your phone number was not found on our Records. To register as a new customer, please provide " +
-                        " the OTP sent to your phone number.");
-                customerService.updateRegistrationState(phone, false, "otp", null, null, null, null);
-            }
+            response.put("message", "Welcome! An OTP has been sent to your phone. Please enter the OTP.");
+            return response;
         }
+
+        Customer customer = customerOptional.get();
+        Optional<RegistrationState> registrationStateOpt = registrationStateService.findByCustomerId(customer.getId());
+
+        registrationStateOpt.ifPresentOrElse(
+                registrationState -> handleRegistrationSteps(customer, registrationState, message, response),
+                () -> response.put("message", "You are already registered!")
+        );
 
         return response;
     }
+
+    private void handleRegistrationSteps(Customer customer, RegistrationState registrationState, String message, Map<String, String> response) {
+        boolean otpVerified = registrationState.isOtpVerified();
+        String step = registrationState.getStep();
+
+        if (!otpVerified) {
+            if (otpService.validateOtp(customer.getId(), message)) {
+                // Update OTP verified status
+                registrationStateService.updateOtpVerified(customer.getId(), true); // Mark OTP as verified
+                registrationStateService.updateStep(customer.getId(), "name"); // Proceed to the next step
+
+                response.put("message", "OTP verified! Please provide your Name.");
+                return; // End here if OTP verification was just completed
+            } else {
+                response.put("message", "Invalid OTP. Please try again.");
+                return;
+            }
+        }
+
+        // Handle other registration steps based on the current step
+        RegistrationStepHandler handler = stepHandlers.get(step);
+        if (handler != null) {
+            handler.handle(customer, message, response);
+        } else {
+            response.put("message", "We encountered an error.");
+        }
+    }
 }
-
-
 

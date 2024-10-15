@@ -4,13 +4,13 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Setter
 @Getter
 public class Otp {
 
-    private String phoneNumber;
+    private UUID customerId;
     private String otp;
     private LocalDateTime expirationTime;
-
 }
