@@ -1,11 +1,8 @@
-
 package com.example.chatbot.Handler;
 
-import com.example.chatbot.Handler.RegistrationStepHandler;
 import com.example.chatbot.model.Customer;
 import com.example.chatbot.service.CustomerService;
 import com.example.chatbot.service.RegistrationStateService;
-
 import java.util.Map;
 
 public class AddressStepHandler implements RegistrationStepHandler {
@@ -22,6 +19,6 @@ public class AddressStepHandler implements RegistrationStepHandler {
         customer.setAddress(message);
         customerService.save(customer); // Save the fully registered customer
         registrationStateService.deleteRegistrationState(customer.getId()); // Remove registration state
-        response.put("message", "Registration complete! Welcome.");
+        response.put("message", "Thank Your Registration is complete! Welcome To JHB CSD App chat.");
     }
 }

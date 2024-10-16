@@ -16,6 +16,11 @@ public class NameStepHandler implements RegistrationStepHandler {
 
     @Override
     public void handle(Customer customer, String message, Map<String, String> response) {
+        if (!message.matches("[a-zA-Z]+")) {
+            response.put("message", "Invalid name format. Please enter a valid name (letters only).");
+            return;
+        }
+
         customer.setName(message);
         customerService.save(customer);
         registrationStateService.updateStep(customer.getId(), "surname");

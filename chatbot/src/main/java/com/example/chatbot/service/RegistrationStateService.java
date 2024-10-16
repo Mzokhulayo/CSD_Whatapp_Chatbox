@@ -1,11 +1,9 @@
 package com.example.chatbot.service;
 
 import com.example.chatbot.model.RegistrationState;
-import com.example.chatbot.repository.CustomerRepository;
 import com.example.chatbot.repository.RegistrationStateRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,21 +23,6 @@ public class RegistrationStateService {
         return registrationStateRepository.findByCustomerId(customerId);
     }
 
-    public void updateRegistrationState(UUID customerId, boolean otpVerified, String step) {
-        Optional<RegistrationState> existingState = findByCustomerId(customerId);
-        existingState.ifPresentOrElse(
-                state -> {
-                    state.setOtpVerified(otpVerified);
-                    state.setStep(step);
-                    registrationStateRepository.save(state); // Update the existing record
-                },
-                () -> {
-                    // If no record exists, create a new one
-                    RegistrationState newState = new RegistrationState(customerId, otpVerified, step);
-                    registrationStateRepository.save(newState);
-                }
-        );
-    }
 
     public void updateOtpVerified(UUID customerId, boolean otpVerified) {
         Optional<RegistrationState> registrationStateOpt = findByCustomerId(customerId);
@@ -62,5 +45,4 @@ public class RegistrationStateService {
     public void deleteRegistrationState(UUID customerId) {
         registrationStateRepository.deleteByCustomerId(customerId); // Ensure this method exists in the repository
     }
-
 }

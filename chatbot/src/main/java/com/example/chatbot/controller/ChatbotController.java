@@ -1,4 +1,4 @@
-// ChatbotController.java
+
 package com.example.chatbot.controller;
 
 import com.example.chatbot.DataTransfareObject.ChatbotRequest;
@@ -13,7 +13,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.Valid;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -57,7 +56,8 @@ public class ChatbotController {
             String otp = otpService.generateOtp();
             otpService.saveOtp(customerId, otp, phone);
 
-            response.put("message", "Welcome! An OTP has been sent to your phone. Please enter the OTP.");
+            response.put("message", "Welcome! No profile was found using your phone Number Please Register." +
+                    "An OTP has been sent to your phone. Please enter the OTP to verify and start the registration process.");
             return response;
         }
 
@@ -66,7 +66,7 @@ public class ChatbotController {
 
         registrationStateOpt.ifPresentOrElse(
                 registrationState -> handleRegistrationSteps(customer, registrationState, message, response),
-                () -> response.put("message", "You are already registered!")
+                () -> response.put("message", "Hello " + customer.getName() +"!, " + "Welcome to the JHB CSD App Chat, How can we you today?")
         );
 
         return response;
@@ -85,7 +85,7 @@ public class ChatbotController {
                 response.put("message", "OTP verified! Please provide your Name.");
                 return; // End here if OTP verification was just completed
             } else {
-                response.put("message", "Invalid OTP. Please try again.");
+                response.put("message", "Invalid OTP or OTP has expired. Please try again.");
                 return;
             }
         }

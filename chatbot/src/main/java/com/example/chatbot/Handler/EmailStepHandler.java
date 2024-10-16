@@ -1,13 +1,8 @@
 package com.example.chatbot.Handler;
 
-// EmailStepHandler.java
-
-
-import com.example.chatbot.Handler.RegistrationStepHandler;
 import com.example.chatbot.model.Customer;
 import com.example.chatbot.service.CustomerService;
 import com.example.chatbot.service.RegistrationStateService;
-
 import java.util.Map;
 
 public class EmailStepHandler implements RegistrationStepHandler {
